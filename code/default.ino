@@ -9,9 +9,9 @@ using namespace BLA;
 SimpleTimer checkInterruptsTimer(100);
 SimpleTimer checkBatteryTimer(1000);
 
-#define LED_PIN     7
+#define LED_PIN     D7
 #define NUM_LEDS    96
-#define BRIGHTNESS  16
+#define BRIGHTNESS  32
 #define MAX_VOLTS   3.3
 #define MAX_MAMPS   1000
 CRGB leds[NUM_LEDS];
@@ -127,7 +127,7 @@ int numbersFont[10][4][4] = {
 };
 
 int rendererIndex = 0; // which rendering function is being used
-int numOfRenderers = 4;
+int numOfRenderers = 3;
 
 // print bytes
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
@@ -142,6 +142,8 @@ int numOfRenderers = 4;
   (byte & 0x01 ? '1' : '0')
 
 void setup() {
+  delay(1000);
+
   Serial.begin(1000000);
 
   // prevevent resetting on interrupt
@@ -161,16 +163,20 @@ void setup() {
   adxl.setInterrupt(ADXL345_INT_INACTIVITY_BIT, 1);
 
   // double tap interrupt
-  adxl.setTapDetectionOnX(0);
-  adxl.setTapDetectionOnY(0);
+  adxl.setTapDetectionOnX(1);
+  adxl.setTapDetectionOnY(1);
   adxl.setTapDetectionOnZ(1);
-  adxl.setTapThreshold(50);
+  adxl.setTapThreshold(100);
   adxl.setTapDuration(15);
   adxl.setDoubleTapLatency(80);
   adxl.setDoubleTapWindow(200);
   adxl.setInterruptMapping(ADXL345_INT_DOUBLE_TAP_BIT, ADXL345_INT1_PIN);
   adxl.setInterrupt(ADXL345_INT_DOUBLE_TAP_BIT, 1);
   adxl.setInterruptLevelBit(0);
+
+  // single tap interrupt
+  adxl.setInterruptMapping(ADXL345_INT_SINGLE_TAP_BIT, ADXL345_INT1_PIN);
+  adxl.setInterrupt(ADXL345_INT_SINGLE_TAP_BIT, 1);
 
   // freefall interrupt
   adxl.setFreeFallThreshold(9); //(5 - 9) recommended - 62.5mg per increment
@@ -265,9 +271,6 @@ void loop(){
   case 2:
     liquid(indexs);
     break;
-  case 3:
-    gameOfLife();
-    break;
   }
 
   if (checkBatteryTimer.isReady()) {
@@ -325,7 +328,7 @@ void checkInterrupts() {
   }
 
   // check for freefall
-  if (interruptSource & FREE_FALL) {
+  if (interruptSource & SINGLE_TAP) {
     if (rendererIndex < numOfRenderers-1) {
       rendererIndex++;
     }
